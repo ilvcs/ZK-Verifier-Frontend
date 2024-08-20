@@ -6,7 +6,7 @@ const LoginPage = () => {
 	const router = useRouter();
 
 	const handleLogin = () => {
-		router.push("/ProfileEntryPage");
+		router.push("/VerificationPage/SignIn");
 	};
 
 	return (

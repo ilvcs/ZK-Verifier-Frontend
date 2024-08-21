@@ -1,5 +1,3 @@
-NOTE: This is a work in progress. The project is not yet ready for use.
-
 Demo implementation of a web application that demonstrates the use of PrivadoID ZK Verifiable Credentials Verification using PrivadoID Web Wallet.
 
 ## Features

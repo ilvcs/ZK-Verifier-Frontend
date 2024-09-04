@@ -16,8 +16,10 @@ const VerificationPage = () => {
 	const router = useRouter();
 	const [verificationQuery, setVerificationQuery] = useState("");
 	const [loading, setLoading] = useState(false);
+	let intervalId;
 
 	useEffect(() => {
+		intervalId = null;
 		if (router.query.queryType === "SignIn") {
 			console.log("Sign In is Fetching", VERIFIER_BACKEND_API_URL_FOR_SIGNIN);
 			fetchData(VERIFIER_BACKEND_API_URL_FOR_SIGNIN);
@@ -47,7 +49,7 @@ const VerificationPage = () => {
 				// Extract the sessionId using URLSearchParams
 				const sessionId = urlObj.searchParams.get("sessionId");
 
-				console.log(sessionId);
+				console.log(`sessionId: ${sessionId}}`);
 				listenForResponse(sessionId);
 			} else {
 				console.error("Error: Expected JSON response");
@@ -60,59 +62,70 @@ const VerificationPage = () => {
 	};
 
 	const listenForResponse = async (sessionId) => {
-		console.log("Listening for response...");
+		console.log("Listening for response... SessionId: ", sessionId);
 		if (!sessionId) {
 			console.error("Error: sessionId is missing");
 			return;
 		}
-		const startTime = Date.now();
-		const endTime = startTime + 2 * 60 * 1000; // 2 minutes
-		const interval = 30 * 1000; // 30 seconds
-		if (router.query.queryType === "SignIn") {
-			setTimeout(checkAuthStatus, interval);
-		} else if (router.query.queryType === "ProofVerify") {
-			setTimeout(checkGraduationStatus, interval);
-		}
+
+		const interval = 5 * 1000; // 5 seconds
+		const duration = 2 * 60 * 1000; // 2 minutes
+
+		intervalId = setInterval(() => {
+			if (router.query.queryType === "SignIn") {
+				checkAuthStatus(sessionId);
+			} else if (router.query.queryType === "ProveGraduate") {
+				checkGraduationStatus(sessionId);
+			}
+		}, interval);
+
+		// Stop the interval after 2 minutes
+		//setTimeout(() => clearInterval(intervalId), duration);
 	};
 
-	const checkAuthStatus = async () => {
+	const checkAuthStatus = async (sessionId) => {
 		try {
-			const response = await axios.get(
-				`${VERIFIER_BACKEND_API_URL_FOR_STATUS}/sessionId?=${sessionId}`,
-			);
+			const response = await axios.get(VERIFIER_BACKEND_API_URL_FOR_STATUS, {
+				params: {
+					sessionId: sessionId,
+				},
+			});
+
 			const data = response.data;
 			console.log(data);
-			if (data.response === "success") {
+			if (data.body?.message) {
+				console.log(intervalId);
+				clearInterval(intervalId);
+				console.log(`	Message: ${data.body.message}`);
+
+				/*TODO: You might need to handle ZWT token in realworld applicaiton  */
 				// Store the user is graduate in the local storage
 				localStorage.setItem("isLogin", "true");
+
 				router.push("/ProfileEntryPage");
-			} else {
-				const currentTime = Date.now();
-				if (currentTime < endTime) {
-					setTimeout(checkStatus, interval);
-				}
 			}
 		} catch (error) {
 			console.error("Error:", error);
 		}
 	};
 
-	const checkGraduationStatus = async () => {
+	const checkGraduationStatus = async (sessionId) => {
 		try {
-			const response = await axios.get(
-				`${VERIFIER_BACKEND_API_URL_FOR_STATUS}/sessionId?=${sessionId}`,
-			);
+			const response = await axios.get(VERIFIER_BACKEND_API_URL_FOR_STATUS, {
+				params: {
+					sessionId: sessionId,
+				},
+			});
 			const data = response.data;
 			console.log(data);
-			if (data.response === "success") {
-				// Store the user is graduate in the local storage
+			console.log(intervalId);
+			clearInterval(intervalId);
+			if (data.body?.message) {
+				console.log(`	Message: ${data.body.message}`);
+				/*TODO: You might need to handle ZWT token in realworld applicaiton */
+				// Handle success case
 				localStorage.setItem("isGraduate", "true");
-				router.push("/JobApplicationPage");
-			} else {
-				const currentTime = Date.now();
-				if (currentTime < endTime) {
-					setTimeout(checkStatus, interval);
-				}
+				router.push("/JobBoardPage");
 			}
 		} catch (error) {
 			console.error("Error:", error);
